@@ -1,0 +1,46 @@
+📸 HOW TO ADD YOUR PROFESSIONAL PHOTO
+=====================================
+
+Your portfolio is ready to display your photo! Follow these simple steps:
+
+STEP 1: Save Your Photo
+------------------------
+1. Save the professional photo you shared as: profile-photo.jpg
+2. Place it in this folder: /Users/mohammeds/portfolio/
+3. Make sure it's named exactly: profile-photo.jpg
+
+STEP 2: Alternative - Use Different Filename
+--------------------------------------------
+If you want to use a different filename:
+1. Save your photo in the portfolio folder with any name
+2. Open index.html
+3. Find line with: src="profile-photo.jpg"
+4. Change it to your filename, example: src="my-photo.png"
+
+SUPPORTED IMAGE FORMATS:
+- .jpg / .jpeg (recommended)
+- .png
+- .webp
+
+PHOTO SPECIFICATIONS:
+✅ Recommended size: 600x600 pixels or larger
+✅ Square or portrait orientation works best
+✅ Professional headshot or business photo
+✅ Good lighting and clear background
+✅ File size: Under 500KB for fast loading
+
+WHAT'S ALREADY DONE:
+✅ HTML updated to use your photo
+✅ CSS styled with beautiful effects:
+   - Circular frame with border
+   - Glowing shadow effect
+   - Hover animation (scales 5% larger)
+   - Gradient glow behind photo
+   - Smooth transitions
+
+QUICK METHOD (Drag & Drop):
+---------------------------
+Simply drag your photo file into the /Users/mohammeds/portfolio/ folder
+and rename it to "profile-photo.jpg"
+
+Once added, refresh your browser and your photo will appear! 🎉
