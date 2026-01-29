@@ -2,14 +2,19 @@
 // Portfolio - Interactive Features
 // ===================================
 
-// Particle Network Background Animation
+// Interactive Floating Bubbles Background Animation
 (function() {
     const canvas = document.getElementById('particleCanvas');
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
-    let particles = [];
+    let bubbles = [];
     let animationFrame;
+    let mouse = {
+        x: null,
+        y: null,
+        radius: 150
+    };
     
     // Set canvas size
     function resizeCanvas() {
@@ -20,76 +25,144 @@
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Particle class
-    class Particle {
+    // Track mouse position
+    canvas.addEventListener('mousemove', (e) => {
+        mouse.x = e.x;
+        mouse.y = e.y;
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        mouse.x = null;
+        mouse.y = null;
+    });
+    
+    // Bubble colors
+    const colors = [
+        { r: 102, g: 126, b: 234 },  // Purple-blue
+        { r: 118, g: 75, b: 162 },   // Deep purple
+        { r: 255, g: 94, b: 98 },    // Coral
+        { r: 129, g: 212, b: 250 },  // Light blue
+        { r: 255, g: 183, b: 77 }    // Orange
+    ];
+    
+    // Bubble class with mouse interaction
+    class Bubble {
         constructor() {
             this.x = Math.random() * canvas.width;
             this.y = Math.random() * canvas.height;
-            this.vx = (Math.random() - 0.5) * 0.5;
-            this.vy = (Math.random() - 0.5) * 0.5;
-            this.radius = Math.random() * 2 + 1;
+            this.baseRadius = Math.random() * 30 + 20;
+            this.radius = this.baseRadius;
+            this.vx = (Math.random() - 0.5) * 1;
+            this.vy = (Math.random() - 0.5) * 1;
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+            this.opacity = Math.random() * 0.3 + 0.2;
+            this.pulseSpeed = Math.random() * 0.02 + 0.01;
+            this.pulsePhase = Math.random() * Math.PI * 2;
         }
         
         update() {
+            // Mouse interaction - bubbles move away from cursor
+            if (mouse.x && mouse.y) {
+                const dx = this.x - mouse.x;
+                const dy = this.y - mouse.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < mouse.radius) {
+                    const force = (mouse.radius - distance) / mouse.radius;
+                    const angle = Math.atan2(dy, dx);
+                    this.vx += Math.cos(angle) * force * 0.5;
+                    this.vy += Math.sin(angle) * force * 0.5;
+                    
+                    // Increase size near mouse
+                    this.radius = this.baseRadius * (1 + force * 0.5);
+                } else {
+                    this.radius = this.baseRadius;
+                }
+            } else {
+                this.radius = this.baseRadius;
+            }
+            
+            // Apply velocity
             this.x += this.vx;
             this.y += this.vy;
             
-            // Bounce off edges
-            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+            // Add some friction
+            this.vx *= 0.98;
+            this.vy *= 0.98;
+            
+            // Keep some base movement
+            if (Math.abs(this.vx) < 0.5) this.vx += (Math.random() - 0.5) * 0.1;
+            if (Math.abs(this.vy) < 0.5) this.vy += (Math.random() - 0.5) * 0.1;
+            
+            // Bounce off edges with smooth wrapping
+            if (this.x < -50) this.x = canvas.width + 50;
+            if (this.x > canvas.width + 50) this.x = -50;
+            if (this.y < -50) this.y = canvas.height + 50;
+            if (this.y > canvas.height + 50) this.y = -50;
+            
+            // Pulsing effect
+            this.pulsePhase += this.pulseSpeed;
         }
         
         draw() {
+            const pulse = Math.sin(this.pulsePhase) * 5;
+            const currentRadius = this.radius + pulse;
+            
+            // Create gradient for bubble
+            const gradient = ctx.createRadialGradient(
+                this.x, this.y, 0,
+                this.x, this.y, currentRadius
+            );
+            
+            gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity * 0.8})`);
+            gradient.addColorStop(0.5, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity * 0.4})`);
+            gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`);
+            
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(102, 126, 234, 0.8)';
+            ctx.arc(this.x, this.y, currentRadius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
             ctx.fill();
             
-            // Glow effect
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'rgba(102, 126, 234, 0.8)';
+            // Add glow effect
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`;
             ctx.fill();
             ctx.shadowBlur = 0;
+            
+            // Add shimmer highlight
+            const highlightGradient = ctx.createRadialGradient(
+                this.x - currentRadius * 0.3,
+                this.y - currentRadius * 0.3,
+                0,
+                this.x - currentRadius * 0.3,
+                this.y - currentRadius * 0.3,
+                currentRadius * 0.5
+            );
+            
+            highlightGradient.addColorStop(0, `rgba(255, 255, 255, ${this.opacity * 0.3})`);
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, currentRadius, 0, Math.PI * 2);
+            ctx.fillStyle = highlightGradient;
+            ctx.fill();
         }
     }
     
-    // Initialize particles
-    const particleCount = window.innerWidth < 768 ? 50 : 100;
-    for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle());
-    }
-    
-    // Draw connections
-    function drawConnections() {
-        for (let i = 0; i < particles.length; i++) {
-            for (let j = i + 1; j < particles.length; j++) {
-                const dx = particles[i].x - particles[j].x;
-                const dy = particles[i].y - particles[j].y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < 150) {
-                    const opacity = (1 - distance / 150) * 0.5;
-                    ctx.beginPath();
-                    ctx.strokeStyle = `rgba(102, 126, 234, ${opacity})`;
-                    ctx.lineWidth = 0.5;
-                    ctx.moveTo(particles[i].x, particles[i].y);
-                    ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.stroke();
-                }
-            }
-        }
+    // Initialize bubbles
+    const bubbleCount = window.innerWidth < 768 ? 15 : 25;
+    for (let i = 0; i < bubbleCount; i++) {
+        bubbles.push(new Bubble());
     }
     
     // Animation loop
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        particles.forEach(particle => {
-            particle.update();
-            particle.draw();
+        bubbles.forEach(bubble => {
+            bubble.update();
+            bubble.draw();
         });
-        
-        drawConnections();
         
         animationFrame = requestAnimationFrame(animate);
     }
