@@ -43,8 +43,8 @@
             this.y = Math.random() * canvas.height;
             this.baseX = this.x;
             this.baseY = this.y;
-            this.vx = (Math.random() - 0.5) * 0.5;
-            this.vy = (Math.random() - 0.5) * 0.5;
+            this.vx = (Math.random() - 0.5) * 1.5;
+            this.vy = (Math.random() - 0.5) * 1.5;
             this.radius = Math.random() * 2 + 1;
         }
         
@@ -60,8 +60,8 @@
                     const angle = Math.atan2(dy, dx);
                     
                     // Push particles away from mouse
-                    this.vx += Math.cos(angle) * force * 0.3;
-                    this.vy += Math.sin(angle) * force * 0.3;
+                    this.vx += Math.cos(angle) * force * 0.5;
+                    this.vy += Math.sin(angle) * force * 0.5;
                 }
             }
             
@@ -70,12 +70,12 @@
             this.y += this.vy;
             
             // Add friction to slow down
-            this.vx *= 0.95;
-            this.vy *= 0.95;
+            this.vx *= 0.98;
+            this.vy *= 0.98;
             
             // Keep some base movement
-            this.vx += (Math.random() - 0.5) * 0.05;
-            this.vy += (Math.random() - 0.5) * 0.05;
+            this.vx += (Math.random() - 0.5) * 0.15;
+            this.vy += (Math.random() - 0.5) * 0.15;
             
             // Bounce off edges
             if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
