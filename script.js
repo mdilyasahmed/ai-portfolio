@@ -2,18 +2,18 @@
 // Portfolio - Interactive Features
 // ===================================
 
-// Interactive Particle Network Background Animation
+// Interactive DNA Helix Background Animation
 (function() {
     const canvas = document.getElementById('particleCanvas');
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
-    let particles = [];
     let animationFrame;
+    let rotation = 0;
     let mouse = {
         x: null,
         y: null,
-        radius: 120
+        influence: 0
     };
     
     // Set canvas size
@@ -36,138 +36,192 @@
         mouse.y = null;
     });
     
-    // Particle class with mouse interaction
-    class Particle {
-        constructor() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.baseX = this.x;
-            this.baseY = this.y;
-            this.vx = (Math.random() - 0.5) * 1.5;
-            this.vy = (Math.random() - 0.5) * 1.5;
-            this.radius = Math.random() * 2 + 1;
-        }
+    // DNA Helix configuration
+    const helixConfig = {
+        centerX: canvas.width / 2,
+        centerY: canvas.height / 2,
+        radius: 80,
+        height: canvas.height * 1.2,
+        pointsPerStrand: 60,
+        rotationSpeed: 0.005,
+        baseRadius: 8,
+        connectionDistance: 30
+    };
+    
+    // Colors for DNA strands
+    const colors = {
+        strand1: { r: 102, g: 126, b: 234 },  // Purple-blue
+        strand2: { r: 118, g: 75, b: 162 },   // Deep purple
+        base1: { r: 255, g: 94, b: 98 },      // Coral
+        base2: { r: 129, g: 212, b: 250 }     // Light blue
+    };
+    
+    // Create DNA helix points
+    function createHelixPoint(index, strandOffset, rotation) {
+        const yStep = helixConfig.height / helixConfig.pointsPerStrand;
+        const y = index * yStep - helixConfig.height / 2;
+        const angle = (index * 0.3) + rotation + strandOffset;
         
-        update() {
-            // Mouse interaction - particles move away from cursor
-            if (mouse.x && mouse.y) {
-                const dx = this.x - mouse.x;
-                const dy = this.y - mouse.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < mouse.radius) {
-                    const force = (mouse.radius - distance) / mouse.radius;
-                    const angle = Math.atan2(dy, dx);
-                    
-                    // Push particles away from mouse
-                    this.vx += Math.cos(angle) * force * 0.5;
-                    this.vy += Math.sin(angle) * force * 0.5;
-                }
-            }
-            
-            // Apply velocity
-            this.x += this.vx;
-            this.y += this.vy;
-            
-            // Add friction to slow down
-            this.vx *= 0.98;
-            this.vy *= 0.98;
-            
-            // Keep some base movement
-            this.vx += (Math.random() - 0.5) * 0.15;
-            this.vy += (Math.random() - 0.5) * 0.15;
-            
-            // Bounce off edges
-            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-            
-            // Keep particles within bounds
-            this.x = Math.max(0, Math.min(canvas.width, this.x));
-            this.y = Math.max(0, Math.min(canvas.height, this.y));
-        }
+        const x = helixConfig.centerX + Math.cos(angle) * helixConfig.radius;
+        const z = Math.sin(angle) * helixConfig.radius;
+        const screenY = y + helixConfig.centerY;
         
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(102, 126, 234, 0.8)';
-            ctx.fill();
-            
-            // Glow effect
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'rgba(102, 126, 234, 0.8)';
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        }
+        return { x, y: screenY, z, angle };
     }
     
-    // Initialize particles
-    const particleCount = window.innerWidth < 768 ? 50 : 100;
-    for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle());
-    }
-    
-    // Draw connections between nearby particles
-    function drawConnections() {
-        for (let i = 0; i < particles.length; i++) {
-            for (let j = i + 1; j < particles.length; j++) {
-                const dx = particles[i].x - particles[j].x;
-                const dy = particles[i].y - particles[j].y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < 150) {
-                    const opacity = (1 - distance / 150) * 0.5;
-                    ctx.beginPath();
-                    ctx.strokeStyle = `rgba(102, 126, 234, ${opacity})`;
-                    ctx.lineWidth = 0.5;
-                    ctx.moveTo(particles[i].x, particles[i].y);
-                    ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.stroke();
-                }
-            }
-        }
+    // Draw glowing sphere
+    function drawBase(x, y, z, radius, color, isConnection = false) {
+        // Calculate size based on depth (z position)
+        const depthScale = (z + helixConfig.radius) / (helixConfig.radius * 2);
+        const size = radius * (0.5 + depthScale * 0.5);
+        const alpha = 0.4 + depthScale * 0.4;
         
-        // Draw connections to mouse
+        // Mouse interaction - bases grow when mouse is near
+        let finalSize = size;
         if (mouse.x && mouse.y) {
-            particles.forEach(particle => {
-                const dx = particle.x - mouse.x;
-                const dy = particle.y - mouse.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < mouse.radius) {
-                    const opacity = (1 - distance / mouse.radius) * 0.3;
-                    ctx.beginPath();
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-                    ctx.lineWidth = 1;
-                    ctx.moveTo(particle.x, particle.y);
-                    ctx.lineTo(mouse.x, mouse.y);
-                    ctx.stroke();
-                }
-            });
-            
-            // Draw mouse cursor indicator
-            ctx.beginPath();
-            ctx.arc(mouse.x, mouse.y, 5, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.fill();
-            
-            ctx.beginPath();
-            ctx.arc(mouse.x, mouse.y, mouse.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            const dx = x - mouse.x;
+            const dy = y - mouse.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 150) {
+                const growth = (1 - distance / 150) * 0.5;
+                finalSize = size * (1 + growth);
+            }
         }
+        
+        // Create gradient
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, finalSize * 2);
+        gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`);
+        gradient.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.5})`);
+        gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+        
+        // Draw base
+        ctx.beginPath();
+        ctx.arc(x, y, finalSize * 2, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        // Draw solid center
+        ctx.beginPath();
+        ctx.arc(x, y, finalSize, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.9})`;
+        ctx.fill();
+        
+        // Glow effect
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.8)`;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+    
+    // Draw connection between base pairs
+    function drawConnection(x1, y1, z1, x2, y2, z2, color) {
+        const avgZ = (z1 + z2) / 2;
+        const depthScale = (avgZ + helixConfig.radius) / (helixConfig.radius * 2);
+        const alpha = 0.3 + depthScale * 0.4;
+        
+        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`);
+        gradient.addColorStop(0.5, `rgba(255, 255, 255, ${alpha * 0.5})`);
+        gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`);
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+    
+    // Draw DNA strand curve
+    function drawStrand(points, color) {
+        if (points.length < 2) return;
+        
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        
+        for (let i = 1; i < points.length - 1; i++) {
+            const xc = (points[i].x + points[i + 1].x) / 2;
+            const yc = (points[i].y + points[i + 1].y) / 2;
+            ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+        }
+        
+        const last = points[points.length - 1];
+        ctx.lineTo(last.x, last.y);
+        
+        const gradient = ctx.createLinearGradient(
+            helixConfig.centerX, 
+            0, 
+            helixConfig.centerX, 
+            canvas.height
+        );
+        gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.1)`);
+        gradient.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`);
+        gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0.1)`);
+        
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
     
     // Animation loop
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        particles.forEach(particle => {
-            particle.update();
-            particle.draw();
-        });
+        // Update center position
+        helixConfig.centerX = canvas.width / 2;
+        helixConfig.centerY = canvas.height / 2;
         
-        drawConnections();
+        // Update rotation with mouse influence
+        let rotationSpeed = helixConfig.rotationSpeed;
+        if (mouse.x && mouse.y) {
+            const mouseInfluence = (mouse.x / canvas.width - 0.5) * 0.01;
+            rotationSpeed += mouseInfluence;
+        }
+        rotation += rotationSpeed;
+        
+        // Create points for both strands
+        const strand1Points = [];
+        const strand2Points = [];
+        
+        for (let i = 0; i < helixConfig.pointsPerStrand; i++) {
+            strand1Points.push(createHelixPoint(i, 0, rotation));
+            strand2Points.push(createHelixPoint(i, Math.PI, rotation));
+        }
+        
+        // Sort by z-depth for proper layering
+        const allPoints = [];
+        for (let i = 0; i < helixConfig.pointsPerStrand; i++) {
+            allPoints.push({
+                strand1: strand1Points[i],
+                strand2: strand2Points[i],
+                index: i
+            });
+        }
+        allPoints.sort((a, b) => a.strand1.z - b.strand1.z);
+        
+        // Draw strands
+        drawStrand(strand1Points, colors.strand1);
+        drawStrand(strand2Points, colors.strand2);
+        
+        // Draw connections and bases (back to front)
+        allPoints.forEach(point => {
+            const s1 = point.strand1;
+            const s2 = point.strand2;
+            
+            // Check if bases are close enough to connect
+            const angleDiff = Math.abs(Math.cos(s1.angle) - Math.cos(s2.angle));
+            if (angleDiff < 0.3) {
+                // Draw connection
+                drawConnection(s1.x, s1.y, s1.z, s2.x, s2.y, s2.z, colors.base1);
+            }
+            
+            // Draw bases
+            const baseColor1 = point.index % 2 === 0 ? colors.base1 : colors.base2;
+            const baseColor2 = point.index % 2 === 0 ? colors.base2 : colors.base1;
+            
+            drawBase(s1.x, s1.y, s1.z, helixConfig.baseRadius, baseColor1);
+            drawBase(s2.x, s2.y, s2.z, helixConfig.baseRadius, baseColor2);
+        });
         
         animationFrame = requestAnimationFrame(animate);
     }
